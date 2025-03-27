@@ -4,22 +4,16 @@ import math
 import pygame
 from os import listdir
 from os.path import isfile, join
-import cv2
-
 pygame.init()
 
-pygame.display.set_caption("Echoes of Home")
+pygame.display.set_caption("Platformer")
 
 WIDTH, HEIGHT = 1000, 800
 FPS = 60
 PLAYER_VEL = 5
+
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-GRAY = (100,100,100)
-
-font = pygame.font.Font(None, 36)
 
 def flip(sprites):
     return [pygame.transform.flip(sprite, True, False) for sprite in sprites]
@@ -271,19 +265,40 @@ def handle_move(player, objects):
         if obj and obj.name == "fire":
             player.make_hit()
 
-def main_game(window):
+def main(window):
     clock = pygame.time.Clock()
     background, bg_image = get_background("Blue.png")
 
     block_size = 96
 
-    player = Player(100, 100, 50, 50)
+    player = Player( 225, 225, 50, 50)
     fire = Fire(100, HEIGHT - block_size - 64, 16, 32)
     fire.on()
-    floor = [Block(i * block_size, HEIGHT - block_size, block_size)
-             for i in range(-WIDTH // block_size, (WIDTH * 2) // block_size)]
-    objects = [*floor, Block(0, HEIGHT - block_size * 2, block_size),
-               Block(block_size * 3, HEIGHT - block_size * 4, block_size), fire]
+    floor = [Block(i * block_size, HEIGHT - block_size, block_size) for i in range(0, (WIDTH * 15) // block_size)] + \
+        [
+            Block(i * block_size, HEIGHT - block_size * height, block_size)
+            for height in range(2, 9)  # Creates levels from 2 to 8
+            for i in range(-WIDTH // block_size, 2)  # Horizontal placement
+        ]
+
+    objects = [
+    *floor,
+    # Original individual blocks
+    Block(0, HEIGHT - block_size * 2, block_size),
+    Block(block_size * 3, HEIGHT - block_size * 4, block_size),
+    Block(block_size * 3, HEIGHT - block_size * 6, block_size),
+    Block(block_size * 18, HEIGHT - block_size * 2, block_size),
+    Block(block_size * 15, HEIGHT - block_size * 3, block_size),
+    Block(block_size * 18, HEIGHT - block_size * 4, block_size),
+    Block(block_size * 15, HEIGHT - block_size * 5, block_size),
+    Block(block_size * 18, HEIGHT - block_size * 6, block_size),
+
+    # Vertical stack at x-coordinate block_size * 19
+    *[Block(block_size * 19, HEIGHT - block_size * level, block_size)
+      for level in range(2, 7)],
+
+    fire
+]
 
     offset_x = 0
     scroll_area_width = 200
@@ -294,7 +309,8 @@ def main_game(window):
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return "exit"  # Signal to exit main loop
+                run = False
+                break
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and player.jump_count < 2:
@@ -309,203 +325,8 @@ def main_game(window):
                 (player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
             offset_x += player.x_vel
 
-    return "exit"
-
-def music_settings(window):
-    clock = pygame.time.Clock()
-    run_music = True
-
-    volume = pygame.mixer.music.get_volume()  # Get current volume
-    muted = volume == 0  # Check if muted
-
-    while run_music:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return
-
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                if back_rect.collidepoint((mouse_x, mouse_y)):
-                    return  # Go back to main menu
-
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:  # Increase volume
-                    volume = min(1.0, volume + 0.1)
-                    pygame.mixer.music.set_volume(volume)
-                elif event.key == pygame.K_DOWN:  # Decrease volume
-                    volume = max(0.0, volume - 0.1)
-                    pygame.mixer.music.set_volume(volume)
-                elif event.key == pygame.K_m:  # Mute/unmute
-                    muted = not muted
-                    pygame.mixer.music.set_volume(0 if muted else volume)
-
-        # Background color (black for now, update if needed)
-        window.fill((0, 0, 0))  # BLACK
-
-        # Draw title
-        font = pygame.font.Font(None, 40)  # Ensure font is defined
-        title_text = font.render("Music Settings", True, (255, 255, 255))  # WHITE
-        title_rect = title_text.get_rect(center=(window.get_width() // 2, window.get_height() // 3))
-        window.blit(title_text, title_rect)
-
-        instructions_font = pygame.font.Font(None, 30)  # Slightly smaller font for instructions
-        music_text = instructions_font.render("Use UP/DOWN to adjust volume, M to mute", True, (200, 200, 200))  # Light gray
-        music_rect = music_text.get_rect(center=(window.get_width() // 2, window.get_height() // 2))
-        window.blit(music_text, music_rect)
-
-        # Back button
-        back_rect = pygame.Rect(window.get_width() // 2 - 50, window.get_height() - 100, 100, 40)
-        back_color = (169, 169, 169) if back_rect.collidepoint(pygame.mouse.get_pos()) else (255, 255, 255)
-        pygame.draw.rect(window, back_color, back_rect, border_radius=10)
-        back_text = font.render("Back", True, (0, 0, 0))
-        window.blit(back_text, (back_rect.x + 30, back_rect.y + 10))
-
-        pygame.display.update()
-        clock.tick(30)
-
-def credits_screen(window):
-    clock = pygame.time.Clock()
-    run_credits = True
-
-    while run_credits:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                if back_rect.collidepoint((mouse_x, mouse_y)):
-                    return  # Go back to main menu
-
-        # Background color
-        window.fill(BLACK)
-
-        # Draw title
-        title_text = font.render("Credits", True, WHITE)
-        title_rect = title_text.get_rect(center=(WIDTH // 2, HEIGHT // 3))
-        window.blit(title_text, title_rect)
-
-        # Example credit text
-        credit_text = font.render("Made by: Your Name", True, WHITE)
-        credit_rect = credit_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
-        window.blit(credit_text, credit_rect)
-
-        # Back button
-        back_rect = pygame.Rect(WIDTH // 2 - 50, HEIGHT - 100, 100, 40)
-        back_color = GRAY if back_rect.collidepoint(pygame.mouse.get_pos()) else WHITE
-        pygame.draw.rect(window, back_color, back_rect, border_radius=10)
-        back_text = font.render("Back", True, BLACK)
-        window.blit(back_text, (back_rect.x + 30, back_rect.y + 10))
-
-        pygame.display.update()
-        clock.tick(30)
-
-def load_video_background(video_path, width, height):
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        print(f"Error: Video file not found -> {video_path}")
-        return None, None
-
-    def update_video():
-        ret, frame = cap.read()
-        if ret:
-            frame = cv2.resize(frame, (width, height))
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            video_surface = pygame.surfarray.make_surface(frame.swapaxes(0, 1))
-            return video_surface
-        else:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            return None
-
-    return cap, update_video
-
-def main_menu(window):
-    pygame.mixer.init()  # Initialize the mixer
-    music_path = join("assets", "Music", "Royalty free forest music for games.mp3")
-    pygame.mixer.music.load(music_path)
-    pygame.mixer.music.play(-1)  # Loop the music
-
-    run_menu = True
-    clock = pygame.time.Clock()
-    video_path = join("assets", "Background", "Pixel Art Forest - Background.mp4")
-    cap, update_video = load_video_background(video_path, WIDTH, HEIGHT)
-    frame_rate = cap.get(cv2.CAP_PROP_FPS) if cap else 30
-
-    # Define button rectangles
-    start_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 80, 200, 50)
-    music_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 20, 200, 50)
-    credits_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 40, 200, 50)
-    exit_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 100, 200, 50)
-
-    while run_menu:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return "exit"
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                if start_rect.collidepoint((mouse_x, mouse_y)):
-                    game_result = main_game(window)
-                    if game_result == "exit":
-                        return "exit"
-                elif music_rect.collidepoint((mouse_x, mouse_y)):
-                    music_settings(window)  # Call music settings
-                elif credits_rect.collidepoint((mouse_x, mouse_y)):
-                    credits_screen(window)  # Call credits screen
-                elif exit_rect.collidepoint((mouse_x, mouse_y)):
-                    return "exit"
-
-        # Update and display video background
-        if cap:
-            video_surface = update_video()
-            if video_surface:
-                window.blit(video_surface, (0, 0))
-
-        # Ensure the font is initialized
-        font = pygame.font.Font(None, 40)  # Use a default font if not set
-
-        # Draw buttons **AFTER** the background is drawn
-        start_color = (169, 169, 169) if start_rect.collidepoint(pygame.mouse.get_pos()) else (255, 255, 255)
-        music_color = (169, 169, 169) if music_rect.collidepoint(pygame.mouse.get_pos()) else (255, 255, 255)
-        credits_color = (169, 169, 169) if credits_rect.collidepoint(pygame.mouse.get_pos()) else (255, 255, 255)
-        exit_color = (169, 169, 169) if exit_rect.collidepoint(pygame.mouse.get_pos()) else (255, 255, 255)
-
-        pygame.draw.rect(window, start_color, start_rect, border_radius=10)
-        pygame.draw.rect(window, music_color, music_rect, border_radius=10)
-        pygame.draw.rect(window, credits_color, credits_rect, border_radius=10)
-        pygame.draw.rect(window, exit_color, exit_rect, border_radius=10)
-
-        start_text = font.render("Start Game", True, (0, 0, 0))
-        music_text = font.render("Music", True, (0, 0, 0))
-        credits_text = font.render("Credits", True, (0, 0, 0))
-        exit_text = font.render("Exit", True, (0, 0, 0))
-
-        window.blit(start_text, (start_rect.x + 50, start_rect.y + 10))
-        window.blit(music_text, (music_rect.x + 75, music_rect.y + 10))
-        window.blit(credits_text, (credits_rect.x + 65, credits_rect.y + 10))
-        window.blit(exit_text, (exit_rect.x + 80, exit_rect.y + 10))
-
-        pygame.display.update()
-        clock.tick(frame_rate)
-
-    if cap:
-        cap.release()
-    return "exit"
-
-def main_loop(window):
-    active_screen = "menu"
-    run_game = True
-
-    while run_game:
-        if active_screen == "menu":
-            menu_result = main_menu(window)
-            if menu_result == "exit":
-                run_game = False
-        elif active_screen == "game":
-            game_result = main_game(window)
-            if game_result == "exit":
-                active_screen = "menu"
-
     pygame.quit()
     quit()
 
 if __name__ == "__main__":
-    main_loop(window)
+    main(window)
