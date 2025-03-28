@@ -9,17 +9,37 @@ pygame.init()
 pygame.display.set_caption("Platformer")
 
 WIDTH, HEIGHT = 1000, 800
-FPS = 60
+FPS =80
 PLAYER_VEL = 5
 
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# If the assets folder is not found, try going up one directory
+def find_assets_dir(base_dir):
+    # First try the current directory
+    assets_path = os.path.join(base_dir, "assets")
+    if os.path.exists(assets_path):
+        return assets_path
+
+    # Then try the parent directory
+    parent_dir = os.path.dirname(base_dir)
+    assets_path = os.path.join(parent_dir, "assets")
+    if os.path.exists(assets_path):
+        return assets_path
+    
+    # Raise an error if assets folder can't be found
+    raise FileNotFoundError(f"Could not find 'assets' folder in {base_dir} or its parent directory")
+
+# Find the correct path to the assets folder
+ASSETS_DIR = find_assets_dir(BASE_DIR)
 
 def flip(sprites):
     return [pygame.transform.flip(sprite, True, False) for sprite in sprites]
 
 def load_sprite_sheets(dir1, dir2, width, height, direction=False):
-    path = join("assets", dir1, dir2)
+    path = os.path.join(ASSETS_DIR, dir1, dir2)
     images = [f for f in listdir(path) if isfile(join(path, f))]
 
     all_sprites = {}
@@ -43,7 +63,7 @@ def load_sprite_sheets(dir1, dir2, width, height, direction=False):
     return all_sprites
 
 def get_block(size):
-    path = join("assets", "Terrain", "Terrain.png")
+    path = os.path.join(ASSETS_DIR, "Terrain", "Terrain.png")
     image = pygame.image.load(path).convert_alpha()
     surface = pygame.Surface((size, size), pygame.SRCALPHA, 32)
     rect = pygame.Rect(96, 0, size, size)
@@ -196,7 +216,7 @@ class Fire(Object):
             self.animation_count = 0
 
 def get_background(name):
-    image = pygame.image.load(join("assets", "Background", name))
+    image = pygame.image.load(os.path.join(ASSETS_DIR, "Background", name))
     _, _, width, height = image.get_rect()
     tiles = []
 
@@ -271,13 +291,13 @@ def main(window):
 
     block_size = 96
 
-    player = Player( 225, 225, 50, 50)
+    player = Player( 225, 225, 50, 50) #225
     fire = Fire(100, HEIGHT - block_size - 64, 16, 32)
     fire.on()
     floor = [Block(i * block_size, HEIGHT - block_size, block_size) for i in range(0, (WIDTH * 15) // block_size)] + \
         [
             Block(i * block_size, HEIGHT - block_size * height, block_size)
-            for height in range(2, 9)  # Creates levels from 2 to 8
+            for height in range(2, 10)  # Creates levels from 2 to 8
             for i in range(-WIDTH // block_size, 2)  # Horizontal placement
         ]
 
@@ -285,17 +305,32 @@ def main(window):
     *floor,
     # Original individual blocks
     Block(0, HEIGHT - block_size * 2, block_size),
-    Block(block_size * 3, HEIGHT - block_size * 4, block_size),
-    Block(block_size * 3, HEIGHT - block_size * 6, block_size),
     Block(block_size * 18, HEIGHT - block_size * 2, block_size),
     Block(block_size * 15, HEIGHT - block_size * 3, block_size),
     Block(block_size * 18, HEIGHT - block_size * 4, block_size),
     Block(block_size * 15, HEIGHT - block_size * 5, block_size),
     Block(block_size * 18, HEIGHT - block_size * 6, block_size),
+    Block(block_size * 33, HEIGHT - block_size * 2, block_size),
+    Block(block_size * 22, HEIGHT - block_size * 4, block_size),
+    Block(block_size * 24, HEIGHT - block_size * 5, block_size),
+    Block(block_size * 25, HEIGHT - block_size * 5, block_size),
+
 
     # Vertical stack at x-coordinate block_size * 19
     *[Block(block_size * 19, HEIGHT - block_size * level, block_size)
       for level in range(2, 7)],
+    *[Block(block_size * 40, HEIGHT - block_size * level, block_size)
+      for level in range(2, 6)],
+    *[Block(block_size *36, HEIGHT - block_size * level, block_size)
+      for level in range(3, 5)],
+    *[Block(block_size *21, HEIGHT - block_size * level, block_size)
+      for level in range(3, 8)],
+
+    # Horizontal
+    *[Block((36 + i) * block_size, HEIGHT - block_size * 5, block_size) for i in range(0, 4)],
+    *[Block((22 + i) * block_size, HEIGHT - block_size * 3, block_size) for i in range(0, 9)],
+    *[Block((25  + i) * block_size, HEIGHT - block_size * 6, block_size) for i in range(0, 9)],
+
 
     fire
 ]
